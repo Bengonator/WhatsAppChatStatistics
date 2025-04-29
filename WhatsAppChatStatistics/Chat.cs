@@ -14,17 +14,7 @@ namespace WhatsApp_Statistics
         private const string NULL = "null";
         private const string NO_MEDIA_ATTACHED = "<Medien ausgeschlossen>";
 
-        public static async Task<Chat> TxtToChatWithMediaDuration(string filePath)
-        {
-            return await TxtToChat(filePath, true);
-        }
-
-        public static Task<Chat> TxtToChatWithoutMediaDuration(string filePath)
-        {
-            return TxtToChat(filePath, false);
-        }
-
-        private static async Task<Chat> TxtToChat(string filePath, bool includeMediaDuration)
+        public static async Task<Chat> TxtToChat(string title, string filePath , bool includeMediaDuration)
         {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentNullException(nameof(filePath));
 
@@ -32,7 +22,7 @@ namespace WhatsApp_Statistics
 
             int lastIdxSlash = filePath.LastIndexOf('\\');
             string folderPath = filePath.Substring(0, lastIdxSlash);
-            Chat chat = new Chat(filePath.Substring(lastIdxSlash + 1, filePath.LastIndexOf('.') - lastIdxSlash - 1)); // +1 to exclude '\' and -1 to exclude '.'
+            Chat chat = new Chat(title);
 
             try
             {
@@ -45,14 +35,17 @@ namespace WhatsApp_Statistics
                         // Empty line
                         if (line.Length == 0)
                         {
-                            prevMsg.AppendToContent("");
+                            prevMsg?.AppendToContent("");
                             continue;
                         }
 
+                        string dateTimeAsString;
+                        dateTimeAsString = line.Split('-')[0];
+                        
                         // If the date and time can't be parsed, it is the second line of the content of the previous message and not a new one
-                        string dateTimeAsString = line.Split('-')[0];
                         if (!DateTime.TryParse(dateTimeAsString, out DateTime dateTime)) // The trailing whitespace is ignored by DateTime.TryParse()
                         {
+                            if (prevMsg == null) throw new Exception("First line of chat log could not be read as a message. This might be due to the beginning of the message missing.");
                             prevMsg.AppendToContent(line);
                             continue;
                         }

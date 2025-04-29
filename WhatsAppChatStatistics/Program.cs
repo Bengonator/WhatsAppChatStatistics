@@ -36,12 +36,12 @@ namespace WhatsApp_Statistics
             string TXT_FILENAME = Environment.GetEnvironmentVariable("TXT_FILENAME");
             string FILE_PATH = Path.Combine(FOLDER_PATH, TXT_FILENAME);
 
-
+            bool includeMediaDuration = false;
             Chat chat;
             try
             {
                 Console.WriteLine("Reading from chatlog...");
-                chat = await Chat.TxtToChatWithoutMediaDuration(FILE_PATH);
+                chat = await Chat.TxtToChat("title of chat", FILE_PATH, includeMediaDuration);
                 Console.WriteLine("Finished reading from chatlog.");
             }
             catch (Exception exc)
@@ -85,7 +85,7 @@ namespace WhatsApp_Statistics
             WH("Amount of messages of all types: ");
             Dictionary<MessageType, int> numPerAllTypes = stats.GetMessages()
                 .GroupBy(msg => msg.messageType)
-                .ToDictionary(group => group.Key, g => g.Count());
+                .ToDictionary(group => group.Key, group => group.Count());
 
             foreach (KeyValuePair<MessageType, int> pair in numPerAllTypes.OrderByDescending(pair => pair.Value))
             {
@@ -93,6 +93,20 @@ namespace WhatsApp_Statistics
                 WL(pair.Value.ToString());
             }
             WL();
+
+            WH("VoiceNote duration per sender:");
+            Dictionary<string, int> durPerSender = stats.GetMessages(messageTypes: new[] {MessageType.Voicenote})
+                .GroupBy(msg => msg.sender)
+                .ToDictionary(group => group.Key, group => group.Sum(msg => msg.length));
+
+            foreach (KeyValuePair<string, int> pair in durPerSender.OrderByDescending(pair => pair.Value))
+            {
+                W($"{pair.Key}: ");
+                WL(pair.Value.ToString());
+            }
+            WL();
+
+            chat.Print();
         }
     }
 }
