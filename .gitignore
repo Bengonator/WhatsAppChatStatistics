@@ -1,0 +1,10 @@
+*.env
+.env
+
+bin/
+obj/
+out/
+.vs
+
+.DS_Store
+Thumbs.db
