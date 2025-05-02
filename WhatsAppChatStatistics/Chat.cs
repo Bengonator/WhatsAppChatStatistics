@@ -23,7 +23,7 @@ namespace WhatsApp_Statistics
             char invSpecialChar = '\u200e'; // Invisible special character in front of all non-text messages
 
             string folderPath = filePath.Substring(0, filePath.LastIndexOf('\\'));
-            Chat chat = new Chat(title);
+            Chat chat = new Chat(title, isAndroid, includeMediaDuration);
 
             try
             {
@@ -170,7 +170,7 @@ namespace WhatsApp_Statistics
                             }
                         }
 
-                        Message message = new Message(dateTime, sender, content, messageType, length);
+                        Message message = new Message(dateTime, sender, content, messageType, length, includeMediaDuration);
                         chat.AddMessage(message);
                         prevMsg = message;
                     }
@@ -185,10 +185,14 @@ namespace WhatsApp_Statistics
         }
 
         public readonly string title;
+        public readonly bool isAndroid;
+        public readonly bool includeMediaDuration;
         public readonly List<Message> messages = new List<Message>();
 
-        public Chat(string title) {
+        public Chat(string title, bool isAndroid, bool includeMediaDuration) {
             this.title = title;
+            this.isAndroid = isAndroid;
+            this.includeMediaDuration = includeMediaDuration;
         }
 
         public override string ToString()

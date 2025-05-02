@@ -4,6 +4,34 @@ namespace WhatsApp_Statistics
 {
     internal class Message
     {
+        public static string HumanReadableSize(int size)
+        {
+            if (size == 0) return "0 B";
+
+            string[] units = { "B", "KB", "MB", "GB", "TB" };
+            int unitIndex = (int)Math.Floor(Math.Log(size, 1024));
+            double adjustedSize = size / Math.Pow(1024, unitIndex);
+
+            return $"{adjustedSize:0.##} {units[unitIndex]}";
+        }
+
+        public static string HumanReadableDuration(int duration)
+        {
+            if (duration < 60)
+                return $"{duration} seconds";
+
+            double minutes = duration / 60.0;
+            if (minutes < 60)
+                return $"{minutes:0.##} minutes";
+
+            double hours = duration / 3600.0;
+            if (hours < 24)
+                return $"{hours:0.##} hours";
+
+            double days = duration / 86400.0;
+            return $"{days:0.##} days";
+        }
+
         public enum MessageType
         {
             Text,
@@ -20,27 +48,39 @@ namespace WhatsApp_Statistics
         public string content;
         public readonly MessageType messageType;
         public int length;
+        private readonly bool isDuration;
 
-        public Message(DateTime dateTime, string sender, string content, MessageType messageType, int length)
+        public Message(DateTime dateTime, string sender, string content, MessageType messageType, int length, bool isDuration)
         {
             this.dateTime = dateTime;
             this.sender = sender;
             this.content = content;
             this.messageType = messageType;
             this.length = length;
+            this.isDuration = isDuration;
         }
 
         public override string ToString()
         {
-            string lengthUnit;
+            string lengthString;
             switch (messageType)
             {
-                case MessageType.Image: case MessageType.Sticker: case MessageType.Files: lengthUnit = "bytes"; break;
-                case MessageType.Voicenote: case MessageType.Video: lengthUnit = "seconds"; break;
-                default: lengthUnit = "chars"; break;
+                case MessageType.Image: case MessageType.Sticker: case MessageType.Files:
+                        lengthString = HumanReadableSize(length); break;
+
+                case MessageType.Voicenote: case MessageType.Video:
+                    {
+                        if (isDuration) lengthString = HumanReadableDuration(length);
+                        else lengthString = HumanReadableSize(length);
+
+                        break;
+                    }
+
+                default:
+                    lengthString = $"{length} chars";  break;
             }
 
-            return String.Format($"{dateTime} - {sender} - {messageType} - {length} {lengthUnit}: {content}");
+            return String.Format($"{dateTime} - {sender} - {messageType} - {lengthString}: {content}");
         }
 
         public void Print()

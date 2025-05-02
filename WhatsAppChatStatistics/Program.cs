@@ -36,7 +36,7 @@ namespace WhatsApp_Statistics
             string TXT_FILENAME = Environment.GetEnvironmentVariable("TXT_FILENAME");
             string FILE_PATH = Path.Combine(FOLDER_PATH, TXT_FILENAME);
 
-            bool includeMediaDuration = false;
+            bool includeMediaDuration = true;
             bool isAndroid = false;
             Chat chat;
             try
@@ -103,16 +103,11 @@ namespace WhatsApp_Statistics
             foreach (KeyValuePair<string, int> pair in durPerSender.OrderByDescending(pair => pair.Value))
             {
                 W($"{pair.Key}: ");
-                WL(pair.Value.ToString());
+                WL(HumanReadableDuration(pair.Value));
             }
             WL();
 
             // chat.Print();
-
-            // TODO: Mark chat as Android or IPhone.
-            // Same for WithOUT duration
-            // and adjust the print to show size/duration
-            // and more readable bytes and seconds and maybe characters too with . or , for thousand
         }
     }
 }
