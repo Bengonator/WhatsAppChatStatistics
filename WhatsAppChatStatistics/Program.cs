@@ -37,11 +37,12 @@ namespace WhatsApp_Statistics
             string FILE_PATH = Path.Combine(FOLDER_PATH, TXT_FILENAME);
 
             bool includeMediaDuration = false;
+            bool isAndroid = false;
             Chat chat;
             try
             {
                 Console.WriteLine("Reading from chatlog...");
-                chat = await Chat.TxtToChat("title of chat", FILE_PATH, includeMediaDuration);
+                chat = await Chat.TxtToChat("title of chat", FILE_PATH, isAndroid, includeMediaDuration);
                 Console.WriteLine("Finished reading from chatlog.");
             }
             catch (Exception exc)
@@ -106,7 +107,12 @@ namespace WhatsApp_Statistics
             }
             WL();
 
-            chat.Print();
+            // chat.Print();
+
+            // TODO: Mark chat as Android or IPhone.
+            // Same for WithOUT duration
+            // and adjust the print to show size/duration
+            // and more readable bytes and seconds and maybe characters too with . or , for thousand
         }
     }
 }

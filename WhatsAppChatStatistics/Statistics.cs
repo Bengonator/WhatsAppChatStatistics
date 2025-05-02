@@ -49,5 +49,6 @@ namespace WhatsApp_Statistics
         }
 
         // TODO: add filter for daytime, weekday and add word search with 'And' instead of 'Or'
+
     }
 }

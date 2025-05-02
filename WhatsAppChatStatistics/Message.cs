@@ -12,8 +12,7 @@ namespace WhatsApp_Statistics
             Video,
             Sticker,
             Files,
-            System, // encryption information, created group, added to group, changed group settings
-            Ghost, // deleted for all, locally deleted media, onetime-view, calls
+            System, // encryption information, created group, added to group, changed group settings, deleted for all, locally deleted media, onetime-view
         }
 
         public readonly DateTime dateTime;

@@ -12,16 +12,17 @@ namespace WhatsApp_Statistics
         private static readonly string FMPEG_FILE_PATH = Environment.GetEnvironmentVariable("FMPEG_FILE_PATH");
         private const string WHATSAPP_SENDER = "WhatsApp";
         private const string NULL = "null";
-        private const string NO_MEDIA_ATTACHED = "<Medien ausgeschlossen>";
+        private const string ANDROID_NO_MEDIA_ATTACHED = "<Medien ausgeschlossen>";
+        private const string IPHONE_NO_MEDIA_ATTACHED = "weggelassen";
 
-        public static async Task<Chat> TxtToChat(string title, string filePath , bool includeMediaDuration)
+        public static async Task<Chat> TxtToChat(string title, string filePath, bool isAndroid, bool includeMediaDuration)
         {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentNullException(nameof(filePath));
 
             FFmpeg.SetExecutablesPath(FMPEG_FILE_PATH);
+            char invSpecialChar = '\u200e'; // Invisible special character in front of all non-text messages
 
-            int lastIdxSlash = filePath.LastIndexOf('\\');
-            string folderPath = filePath.Substring(0, lastIdxSlash);
+            string folderPath = filePath.Substring(0, filePath.LastIndexOf('\\'));
             Chat chat = new Chat(title);
 
             try
@@ -39,9 +40,20 @@ namespace WhatsApp_Statistics
                             continue;
                         }
 
-                        string dateTimeAsString;
-                        dateTimeAsString = line.Split('-')[0];
-                        
+                        // Only happens for IPhone Media messages
+                        bool firstLineCharIsu200e = false;
+                        if (line[0] == invSpecialChar)
+                        {
+                            firstLineCharIsu200e = true;
+                            line = line.Substring(1); // Remove leading invisible special character
+                        }
+
+                        // Android: DateTime - Sender
+                        // IPhone: [DatenTime] Sender
+                        string dateTimeAsString = isAndroid
+                            ? dateTimeAsString = line.Split('-')[0]
+                            : line.Split(']')[0].Substring(1); // Substring(1) to remove the leading '['
+
                         // If the date and time can't be parsed, it is the second line of the content of the previous message and not a new one
                         if (!DateTime.TryParse(dateTimeAsString, out DateTime dateTime)) // The trailing whitespace is ignored by DateTime.TryParse()
                         {
@@ -50,48 +62,71 @@ namespace WhatsApp_Statistics
                             continue;
                         }
 
-                        string lineWithoutDateTime = line.Substring(dateTimeAsString.Length + 2); // +2 to remove "- "
+                        // Android: DateTime - Sender
+                        // IPhone: [DatenTime] Sender
+                        string lineWithoutDateTime = isAndroid
+                            ? line.Substring(dateTimeAsString.Length + 2) // +2 to remove "- "
+                            : line.Substring(dateTimeAsString.Length + 3); // +3 to skip '[' and then to remove "] "
+
+                        // Both: Sender:
                         string[] splittedLineWithoutDateTime = lineWithoutDateTime.Split(':');
 
                         string sender;
                         string content;
                         int length;
                         Message.MessageType messageType;
-                        if (splittedLineWithoutDateTime.Length == 1) // Happens for example for the encryption notifications at the beginning of each chat
+
+                        // Android System message without sender
+                        if (isAndroid && splittedLineWithoutDateTime.Length == 1)
                         {
                             sender = WHATSAPP_SENDER;
-                            content = lineWithoutDateTime.Split(':')[0];
+                            content = lineWithoutDateTime;
                             messageType = Message.MessageType.System;
                             length = int.MinValue;
-
-                            if (content[0] == '\u200e') content = content.Substring(1); // Remove the leading invisible special character
                         }
                         else
                         {
-                            sender = lineWithoutDateTime.Split(':')[0]; // Can cause problems if there is a ':' in the sender name
-                            content = lineWithoutDateTime.Split(':')[1].Substring(1); // Remove the leading whitespace
+                            // KNOWN PROBLEM: If there is a ':' in the sender name
+                            sender = lineWithoutDateTime.Split(':')[0];
 
-                            if (content[0] != '\u200e') // Invisible special character in front of all non-text messages
+                            bool firstContentCharIsu200e;
+                            if (lineWithoutDateTime.Split(':')[1].Length == 0)
                             {
-                                if (content.Equals(NULL) || content.Equals(NO_MEDIA_ATTACHED))
-                                {
-                                    messageType = Message.MessageType.Ghost;
-                                    length = int.MinValue;
-                                }
-                                else
-                                {
-                                    messageType = Message.MessageType.Text;
-                                    length = content.Length;
-                                }
+                                content = "";
+                                firstContentCharIsu200e = false;
+                            }
+                            else
+                            {
+                                content = lineWithoutDateTime.Substring(lineWithoutDateTime.IndexOf(':') + 2); // +2 to skip ": "
+                                firstContentCharIsu200e = content[0] == invSpecialChar;
+                            }
+
+                            if (!firstContentCharIsu200e // Text message
+                                && !(content.Equals(NULL) // Includes deleted for all, onetime-view and calls on Android
+                                && !content.Equals(ANDROID_NO_MEDIA_ATTACHED))) // Includes locally deleted media on Android
+                            {
+                                messageType = Message.MessageType.Text;
+                                length = content.Length;
+                            }
+                            else if (content.Equals(NULL) || content.Equals(ANDROID_NO_MEDIA_ATTACHED) // Some Android System message
+                                || content.Contains(IPHONE_NO_MEDIA_ATTACHED) // IPhone System message: no media attached
+                                || (!isAndroid && !firstLineCharIsu200e)) // Most IPhone System message
+                            {
+                                messageType = Message.MessageType.System;
+                                length = int.MinValue;
                             }
                             else // Media message
                             {
+                                // Android: fileName.fileType (...
+                                // IPhone: <Anhang: fileName.fileType>
                                 content = content.Substring(1); // Remove the leading special character
-                                string mediaPath = String.Concat(
+                                string fileName;
+                                if (isAndroid) fileName = content.Substring(0, content.LastIndexOf('(') - 1); // -1 to remove the trailing whitespace
+                                else fileName = content.Split(':')[1].TrimEnd('>').Substring(1); // To remove the leading leading invisible special character and the trailing '>'
+
+                                string mediaPath = Path.Combine(
                                     folderPath,
-                                    "\\",
-                                    content.Substring(0, content.LastIndexOf('(') - 1) // -1 to remove the trailing whitespace
-                                );
+                                    fileName);
 
                                 int fileSize = 0;
                                 int duration = 0;
