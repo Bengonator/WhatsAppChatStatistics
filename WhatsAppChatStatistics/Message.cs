@@ -43,67 +43,67 @@ namespace WhatsApp_Statistics
             System, // encryption information, created group, added to group, changed group settings, deleted for all, locally deleted media, onetime-view
         }
 
-        public readonly DateTime dateTime;
-        public readonly string sender;
-        public string content;
-        public readonly MessageType messageType;
-        public int length;
-        private readonly bool isDuration;
+        public DateTime DateTime { get; }
+        public string Sender { get; }
+        public string Content { get; set; }
+        public MessageType Type { get; }
+        public int Length { get; set; }
+        public bool IsDuration { get; }
 
-        public Message(DateTime dateTime, string sender, string content, MessageType messageType, int length, bool isDuration)
+        public Message(DateTime dateTime, string sender, string content, MessageType type, int length, bool isDuration)
         {
-            this.dateTime = dateTime;
-            this.sender = sender;
-            this.content = content;
-            this.messageType = messageType;
-            this.length = length;
-            this.isDuration = isDuration;
+            this.DateTime = dateTime;
+            this.Sender = sender;
+            this.Content = content;
+            this.Type = type;
+            this.Length = length;
+            this.IsDuration = isDuration;
         }
 
         public override string ToString()
         {
             string lengthString;
-            switch (messageType)
+            switch (Type)
             {
                 case MessageType.Image: case MessageType.Sticker: case MessageType.Files:
-                        lengthString = HumanReadableSize(length); break;
+                        lengthString = HumanReadableSize(Length); break;
 
                 case MessageType.Voicenote: case MessageType.Video:
                     {
-                        if (isDuration) lengthString = HumanReadableDuration(length);
-                        else lengthString = HumanReadableSize(length);
+                        if (IsDuration) lengthString = HumanReadableDuration(Length);
+                        else lengthString = HumanReadableSize(Length);
 
                         break;
                     }
 
                 default:
-                    lengthString = $"{length} chars";  break;
+                    lengthString = $"{Length} chars";  break;
             }
 
-            return String.Format($"{dateTime} - {sender} - {messageType} - {lengthString}: {content}");
+            return String.Format($"{DateTime} - {Sender} - {Type} - {lengthString}: {Content}");
         }
 
         public void Print()
         {
             Console.ForegroundColor = ConsoleColor.Blue;
-            Console.Write(dateTime);
+            Console.Write(DateTime);
             
             Console.ResetColor();
             Console.Write(" - ");
             
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write(sender);
+            Console.Write(Sender);
             
             Console.ResetColor();
             Console.Write(": ");
             
-            Console.WriteLine(content);
+            Console.WriteLine(Content);
         }
 
         public void AppendToContent(string appendix)
         {
-            content = String.Concat(content, Environment.NewLine, appendix);
-            if (messageType == MessageType.Text) length = content.Length;
+            Content = String.Concat(Content, Environment.NewLine, appendix);
+            if (Type == MessageType.Text) Length = Content.Length;
         }
     }
 }

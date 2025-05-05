@@ -12,7 +12,7 @@ namespace WhatsApp_Statistics
 
         public Statistics(Chat chat)
         {
-            this.messages = chat.messages;
+            this.messages = chat.Messages;
             this.senders = GetSenders();
         }
 
@@ -21,7 +21,7 @@ namespace WhatsApp_Statistics
             List<string> senders = new List<string>();
             messages.ForEach(msg =>
             {
-                senders.Add(msg.sender);
+                senders.Add(msg.Sender);
             });
 
             return senders.Distinct().ToList();
@@ -38,13 +38,13 @@ namespace WhatsApp_Statistics
             if (messageTypes == null || messageTypes.Length == 0) messageTypes = (MessageType[])Enum.GetValues(typeof(MessageType));
 
             return messages.Where(msg =>
-                from <= msg.dateTime
-                && msg.dateTime <= to
-                && senders.Contains(msg.sender)
-                && contentContainsAny.Any(str => msg.content.Contains(str))
-                && messageTypes.Contains(msg.messageType)
-                && minLength <= msg.length
-                && msg.length <= maxLength
+                from <= msg.DateTime
+                && msg.DateTime <= to
+                && senders.Contains(msg.Sender)
+                && contentContainsAny.Any(str => msg.Content.Contains(str))
+                && messageTypes.Contains(msg.Type)
+                && minLength <= msg.Length
+                && msg.Length <= maxLength
             ).ToList();
         }
 

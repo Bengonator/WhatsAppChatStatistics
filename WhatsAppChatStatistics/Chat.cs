@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Xabe.FFmpeg;
+using static WhatsApp_Statistics.Message;
 
 namespace WhatsApp_Statistics
 {
@@ -15,15 +17,27 @@ namespace WhatsApp_Statistics
         private const string ANDROID_NO_MEDIA_ATTACHED = "<Medien ausgeschlossen>";
         private const string IPHONE_NO_MEDIA_ATTACHED = "weggelassen";
 
+        public static void SaveAsJson(Chat chat, string filePath)
+        {
+            File.WriteAllText(filePath, JsonSerializer.Serialize(chat, new JsonSerializerOptions { WriteIndented = true }));
+        }
+
+        public static Chat ReadFromJson(string filePath)
+        {
+            string str = File.ReadAllText(filePath);
+            Chat chat = JsonSerializer.Deserialize<Chat>(str);
+            return chat;
+        }
+
         public static async Task<Chat> TxtToChat(string title, string filePath, bool isAndroid, bool includeMediaDuration)
         {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentNullException(nameof(filePath));
 
             FFmpeg.SetExecutablesPath(FMPEG_FILE_PATH);
-            char invSpecialChar = '\u200e'; // Invisible special character in front of all non-text messages
+            const char invSpecialChar = '\u200e'; // Invisible special character in front of all non-text messages
 
             string folderPath = filePath.Substring(0, filePath.LastIndexOf('\\'));
-            Chat chat = new Chat(title, isAndroid, includeMediaDuration);
+            Chat chat = new Chat(title, isAndroid, includeMediaDuration, new List<Message>());
 
             try
             {
@@ -144,27 +158,27 @@ namespace WhatsApp_Statistics
 
                                 if (content.Contains(".jpg"))
                                 {
-                                    messageType = Message.MessageType.Image;
+                                    messageType = MessageType.Image;
                                     length = fileSize;
                                 }
                                 else if (content.Contains(".opus"))
                                 {
-                                    messageType = Message.MessageType.Voicenote;
+                                    messageType = MessageType.Voicenote;
                                     length = duration;
                                 }
                                 else if (content.Contains(".mp4"))
                                 {
-                                    messageType = Message.MessageType.Video;
+                                    messageType = MessageType.Video;
                                     length = duration;
                                 }
                                 else if (content.Contains(".webp"))
                                 {
-                                    messageType = Message.MessageType.Sticker;
+                                    messageType = MessageType.Sticker;
                                     length = fileSize;
                                 }
                                 else
                                 {
-                                    messageType = Message.MessageType.Files;
+                                    messageType = MessageType.Files;
                                     length = fileSize;
                                 }
                             }
@@ -184,34 +198,35 @@ namespace WhatsApp_Statistics
             return chat;
         }
 
-        public readonly string title;
-        public readonly bool isAndroid;
-        public readonly bool includeMediaDuration;
-        public readonly List<Message> messages = new List<Message>();
+        public string Title { get; }
+        public bool IsAndroid { get; }
+        public bool IncludeMediaDuration { get; }
+        public List<Message> Messages { get; }
 
-        public Chat(string title, bool isAndroid, bool includeMediaDuration) {
-            this.title = title;
-            this.isAndroid = isAndroid;
-            this.includeMediaDuration = includeMediaDuration;
+        public Chat(string title, bool isAndroid, bool includeMediaDuration, List<Message> messages) {
+            this.Title = title;
+            this.IsAndroid = isAndroid;
+            this.IncludeMediaDuration = includeMediaDuration;
+            this.Messages = messages;
         }
 
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"Chat: {title}");
-            messages.ForEach(msg => sb.AppendLine(msg.ToString()));
+            sb.AppendLine($"Chat: {Title}");
+            Messages.ForEach(msg => sb.AppendLine(msg.ToString()));
             return sb.ToString();
         }
 
         public void Print()
         {
-            Console.WriteLine($"Chat: {title}");
-            messages.ForEach(msg => msg.Print());
+            Console.WriteLine($"Chat: {Title}");
+            Messages.ForEach(msg => msg.Print());
         }
 
         public void AddMessage(Message message)
         {
-            messages.Add(message);
+            Messages.Add(message);
         }
     }
 }

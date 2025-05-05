@@ -10,14 +10,14 @@ namespace WhatsApp_Statistics
 {
     internal class Program
     {
-        private static void WH(string str = "")
+        private static void WH(string str)
         {
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.WriteLine(str);
             Console.ResetColor();
         }
 
-        private static void W(string str = "")
+        private static void W(string str)
         {
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.Write(str);
@@ -36,13 +36,13 @@ namespace WhatsApp_Statistics
             string TXT_FILENAME = Environment.GetEnvironmentVariable("TXT_FILENAME");
             string FILE_PATH = Path.Combine(FOLDER_PATH, TXT_FILENAME);
 
-            bool includeMediaDuration = true;
+            bool includeMediaDuration = false;
             bool isAndroid = false;
             Chat chat;
             try
             {
                 Console.WriteLine("Reading from chatlog...");
-                chat = await Chat.TxtToChat("title of chat", FILE_PATH, isAndroid, includeMediaDuration);
+                chat = await Chat.TxtToChat(Path.GetFileName(FOLDER_PATH), FILE_PATH, isAndroid, includeMediaDuration);
                 Console.WriteLine("Finished reading from chatlog.");
             }
             catch (Exception exc)
@@ -58,7 +58,12 @@ namespace WhatsApp_Statistics
                 return;
             }
 
+            string jsonPath = Path.Combine(FOLDER_PATH, chat.Title + ".json");
             PrintAllStatistics(chat);
+            Chat.SaveAsJson(chat, jsonPath);
+            Chat afterJsonChat = Chat.ReadFromJson(jsonPath);
+            PrintAllStatistics(afterJsonChat);
+
             Console.ReadLine();
         }
 
@@ -73,7 +78,7 @@ namespace WhatsApp_Statistics
 
             WH("Amount of messages of all senders: ");
             Dictionary<string, int> numPerAllSenders = stats.GetMessages()
-                .GroupBy(msg => msg.sender)
+                .GroupBy(msg => msg.Sender)
                 .ToDictionary(group => group.Key, g => g.Count());
 
             foreach (KeyValuePair<string, int> pair in numPerAllSenders.OrderByDescending(pair => pair.Value))
@@ -85,7 +90,7 @@ namespace WhatsApp_Statistics
 
             WH("Amount of messages of all types: ");
             Dictionary<MessageType, int> numPerAllTypes = stats.GetMessages()
-                .GroupBy(msg => msg.messageType)
+                .GroupBy(msg => msg.Type)
                 .ToDictionary(group => group.Key, group => group.Count());
 
             foreach (KeyValuePair<MessageType, int> pair in numPerAllTypes.OrderByDescending(pair => pair.Value))
@@ -97,8 +102,8 @@ namespace WhatsApp_Statistics
 
             WH("VoiceNote duration per sender:");
             Dictionary<string, int> durPerSender = stats.GetMessages(messageTypes: new[] {MessageType.Voicenote})
-                .GroupBy(msg => msg.sender)
-                .ToDictionary(group => group.Key, group => group.Sum(msg => msg.length));
+                .GroupBy(msg => msg.Sender)
+                .ToDictionary(group => group.Key, group => group.Sum(msg => msg.Length));
 
             foreach (KeyValuePair<string, int> pair in durPerSender.OrderByDescending(pair => pair.Value))
             {
@@ -106,8 +111,6 @@ namespace WhatsApp_Statistics
                 WL(HumanReadableDuration(pair.Value));
             }
             WL();
-
-            // chat.Print();
         }
     }
 }
